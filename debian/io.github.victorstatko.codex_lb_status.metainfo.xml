@@ -15,6 +15,12 @@
   <url type="homepage">https://github.com/VictorStatko/codex-lb-status</url>
   <launchable type="desktop-id">io.github.victorstatko.codex_lb_status.desktop</launchable>
   <releases>
+    <release version="0.1.35" date="2026-09-06">
+      <description>
+        <p>Cleaned up CI warnings and Debian package validation dependencies.</p>
+        <p>Documented the tray indicator and added its README screenshot.</p>
+      </description>
+    </release>
     <release version="0.1.34" date="2026-09-06">
       <description>
         <p>Prepared the codebase for public development and hardened local session isolation.</p>
