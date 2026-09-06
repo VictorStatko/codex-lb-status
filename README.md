@@ -90,7 +90,10 @@ You can also open the downloaded `.deb` in Ubuntu App Center and select
 
 The package installs the application, launcher, desktop entry, icon, AppStream
 metadata, and documentation under standard system paths. Installation does not
-write to the current user's home directory.
+write to the current user's home directory, start the application, or enable it
+at login. After installation, start **Codex LB Status** manually from the
+application menu or by running `codex-lb-status`. You can then enable **Launch
+at login** in the application's Settings.
 
 ### Update
 
