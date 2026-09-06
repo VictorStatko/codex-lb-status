@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Codex LB Status
+GenericName=Codex LB monitor
+Comment=Read-only Codex LB quota and account status
+Exec=/usr/bin/codex-lb-status
+Icon=io.github.victorstatko.codex_lb_status
+Terminal=false
+Categories=System;Monitor;
+StartupNotify=true

@@ -1,0 +1,256 @@
+codex-lb-status (0.1.34) unstable; urgency=medium
+
+  * Prepare the codebase and project metadata for public development.
+  * Harden HTTP response cleanup, error redaction, and cookie isolation.
+  * Normalize the desktop application ID and add command documentation.
+  * Replace the README image with a sanitized Ubuntu desktop screenshot.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 12:00:00 +0300
+
+codex-lb-status (0.1.33) unstable; urgency=medium
+
+  * Refine Details labels and align pooled account values.
+  * Prepare the source tree, project metadata, and CI checks for publication.
+  * Harden response cleanup, error redaction, and session-origin isolation.
+  * Normalize the desktop application ID and add command documentation.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 11:30:00 +0300
+
+codex-lb-status (0.1.32) unstable; urgency=medium
+
+  * Show pooled quota increases as countdowns matching account reset labels.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 11:00:00 +0300
+
+codex-lb-status (0.1.31) unstable; urgency=medium
+
+  * Show the nearest quota-increase time beneath each pooled average.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 10:30:00 +0300
+
+codex-lb-status (0.1.30) unstable; urgency=medium
+
+  * Preserve message-box header space across Qt's deferred layout pass.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 10:00:00 +0300
+
+codex-lb-status (0.1.29) unstable; urgency=medium
+
+  * Keep message-box titles visible with a stable minimum dialog width.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 09:30:00 +0300
+
+codex-lb-status (0.1.28) unstable; urgency=medium
+
+  * Keep modal dialogs above Details without making them globally topmost.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 09:00:00 +0300
+
+codex-lb-status (0.1.27) unstable; urgency=medium
+
+  * Close all owned and nested dialogs when Details closes.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 08:30:00 +0300
+
+codex-lb-status (0.1.26) unstable; urgency=medium
+
+  * Keep every modal dialog above Details while preserving interaction.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 08:00:00 +0300
+
+codex-lb-status (0.1.25) unstable; urgency=medium
+
+  * Fill Details to screen height; preserve manual resizing.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 07:30:00 +0300
+
+codex-lb-status (0.1.24) unstable; urgency=medium
+
+  * Grow the Details window with larger account pools while preserving manual sizing.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 07:00:00 +0300
+
+codex-lb-status (0.1.23) unstable; urgency=medium
+
+  * Flatten quota summaries into compact columns and reduce window dead space.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 06:30:00 +0300
+
+codex-lb-status (0.1.22) unstable; urgency=medium
+
+  * Separate collapsed quota windows into highlighted limit blocks.
+  * Center secondary windows on the open Details window.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 06:00:00 +0300
+
+codex-lb-status (0.1.21) unstable; urgency=medium
+
+  * Split collapsed accounts into identity/status and muted quota/reset lines.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 05:00:00 +0300
+
+codex-lb-status (0.1.20) unstable; urgency=medium
+
+  * Reserve consistent padding between the Actions label and menu indicator.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 04:30:00 +0300
+
+codex-lb-status (0.1.19) unstable; urgency=medium
+
+  * Replace quota numbers with a warning while data is being refreshed.
+  * Group footer commands under a single Actions menu.
+  * Improve signed-out and credential-entry layouts.
+  * Show reset credits and quota countdowns on collapsed account rows.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 04:00:00 +0300
+
+codex-lb-status (0.1.18) unstable; urgency=medium
+
+  * Use native double-click activation on every supported tray host.
+  * Remove the single-click bridge, its blank popup, and icon re-registration.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 03:00:00 +0300
+
+codex-lb-status (0.1.17) unstable; urgency=medium
+
+  * Make Ubuntu GNOME recognize the non-printing single-click bridge.
+  * Retire the bridge before GNOME can display an empty popup menu.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 02:30:00 +0300
+
+codex-lb-status (0.1.16) unstable; urgency=medium
+
+  * Keep the Ubuntu single-click activation bridge invisible to the user.
+  * Toggle Details closed when the tray indicator is clicked while it is open.
+  * Remove the tray tooltip on every desktop.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 02:00:00 +0300
+
+codex-lb-status (0.1.15) unstable; urgency=medium
+
+  * Translate Ubuntu AppIndicator single-click menu requests into Details.
+  * Document Ubuntu GNOME's lack of StatusNotifier tooltip support.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 01:30:00 +0300
+
+codex-lb-status (0.1.14) unstable; urgency=medium
+
+  * Replace the tray menu with a native, automatically dismissed hover summary.
+  * Open and pin the details window when the tray indicator is clicked.
+  * Move sign-out, launch-at-login, stop, and dashboard controls into Details.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 01:00:00 +0300
+
+codex-lb-status (0.1.13) unstable; urgency=medium
+
+  * Show exact 5-hour and weekly quota values together in the tray icon.
+  * Maximize the slash-separated label font for every rendered icon size.
+  * Remove the decorative quota icon and active count from quota summaries.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 00:01:00 +0300
+
+codex-lb-status (0.1.12) unstable; urgency=medium
+
+  * Replace per-account tray rows with fixed pool and reset-credit totals.
+  * Keep the tray menu open when its refresh or retry row is activated.
+  * Label the update action explicitly as Click to refresh or Click to retry.
+  * Keep menu height independent of the number of configured accounts.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 23:30:00 +0300
+
+codex-lb-status (0.1.11) unstable; urgency=medium
+
+  * Open, expand, focus, and reveal accounts selected from the tray menu.
+  * Combine last-update status with the refresh and retry action.
+  * Show separated quota values and per-account reset-credit counts.
+  * Move dashboard access to a version footer and clarify indicator shutdown.
+  * Preserve expanded account cards across periodic state refreshes.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 23:00:00 +0300
+
+codex-lb-status (0.1.10) unstable; urgency=medium
+
+  * Keep intentionally closed details closed on tray activation or menu open.
+  * Distinguish explicit presentation intent from transient widget visibility.
+  * Reserve Show details for opening and use indicator events only to restore.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 22:00:00 +0300
+
+codex-lb-status (0.1.9) unstable; urgency=medium
+
+  * Match active-account and pooled-quota status semantics to Codex LB.
+  * Weight pooled quotas by account capacity and decode the full account API.
+  * Validate dashboard contracts and preserve structured HTTP error metadata.
+  * Reject unauthenticated login responses before saving session cookies.
+  * Deliver failed background operations safely to the Qt thread.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 21:00:00 +0300
+
+codex-lb-status (0.1.8) unstable; urgency=medium
+
+  * Count every connected account in quota averages, including zero quota.
+  * Keep connected, rate-limited, quota-exhausted, and paused accounts green.
+  * Restore minimized windows when the tray menu opens and anchor dialogs on
+    the right side of the indicator's screen.
+  * Keep ordinary menu actions and dialog buttons free of decorative icons.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 19:00:00 +0300
+
+codex-lb-status (0.1.7) unstable; urgency=medium
+
+  * Reorganize the tray menu for clearer status and action groups.
+  * Hide cached account and quota data while signed out.
+  * Use account status for green and red account indicators.
+  * Restore and position open windows beside the tray indicator.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 18:00:00 +0300
+
+codex-lb-status (0.1.6) unstable; urgency=medium
+
+  * Present the details window only once for a tray click or double-click.
+  * Add confirmed local sign-out for authenticated dashboard sessions.
+  * Remove decorative icons from ordinary menu and window actions.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 17:00:00 +0300
+
+codex-lb-status (0.1.5) unstable; urgency=medium
+
+  * Combine the server version and dashboard action into one clickable item.
+  * Show the exact update time in the tray menu.
+  * Start account details collapsed behind compact expandable summaries.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 16:00:00 +0300
+
+codex-lb-status (0.1.4) unstable; urgency=medium
+
+  * Use a consistent circular silhouette for every status icon.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 15:00:00 +0300
+
+codex-lb-status (0.1.3) unstable; urgency=medium
+
+  * Let the details-window footer blend into the main canvas.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 14:00:00 +0300
+
+codex-lb-status (0.1.2) unstable; urgency=medium
+
+  * Redesign the status window, tray menu, settings, and login dialogs.
+  * Improve account scanning, direct login access, keyboard navigation, and
+    accessible text equivalents for quota state.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 13:00:00 +0300
+
+codex-lb-status (0.1.1) unstable; urgency=medium
+
+  * Show the averaged 5-hour quota in the tray icon and use the weekly quota
+    tone for its surrounding ring.
+  * Name both quota windows explicitly in the tray tooltip.
+
+ -- Victor Statko <statkovit@gmail.com>  Sat, 05 Sep 2026 12:00:00 +0300
+
+codex-lb-status (0.1.0) unstable; urgency=medium
+
+  * Add the initial read-only Qt desktop companion scaffold and monitoring UI.
+
+ -- Victor Statko <statkovit@gmail.com>  Fri, 04 Sep 2026 12:00:00 +0000

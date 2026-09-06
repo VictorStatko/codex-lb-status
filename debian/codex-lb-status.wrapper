@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+import sys
+
+sys.path.insert(0, "/usr/lib/codex-lb-status")
+
+from codex_lb_status.app import main
+
+raise SystemExit(main())

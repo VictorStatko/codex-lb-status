@@ -1,0 +1,51 @@
+.TH CODEX-LB-STATUS 1 "September 2026" "codex-lb-status 0.1.34" "User Commands"
+.SH NAME
+codex-lb-status \- monitor Codex LB quota and account status
+.SH SYNOPSIS
+.B codex-lb-status
+.RI [ option ]
+.SH DESCRIPTION
+.B codex-lb-status
+is a read-only Ubuntu tray companion for Codex LB. It displays pooled quota,
+account health, reset credits, and update state without keeping the dashboard
+open.
+.PP
+Only one instance runs per user session. Starting the command again presents
+the requested window in the running instance.
+.SH OPTIONS
+.TP
+.B \-\-background
+Start with only the tray indicator visible.
+.TP
+.B \-\-settings
+Start the indicator and present the Settings dialog.
+.TP
+.B \-\-version
+Print the installed version and exit.
+.TP
+.B \-h, \-\-help
+Show command-line help and exit.
+.SH FILES
+.TP
+.I ~/.config/codex-lb-status/config.json
+User preferences.
+.TP
+.I ~/.local/state/codex-lb-status/sessions/
+Per-origin dashboard session cookies.
+.TP
+.I ~/.config/autostart/io.github.victorstatko.codex_lb_status.desktop
+User-created launch-at-login entry.
+.SH SECURITY
+Remote servers require HTTPS. Plain HTTP is accepted only for loopback
+addresses. The application does not implement account, routing, quota, or
+server-administration operations.
+.SH SEE ALSO
+The project documentation is installed under
+.IR /usr/share/doc/codex-lb-status/README.md.gz .
+.SH BUGS
+Report non-security issues at
+https://github.com/VictorStatko/codex-lb-status/issues.
+.SH AUTHOR
+Victor Statko <statkovit@gmail.com>
+.SH COPYRIGHT
+Copyright 2026 Victor Statko. License GPL-3.0-only.

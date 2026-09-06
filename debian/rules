@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+
+export PYBUILD_NAME=codex-lb-status
+
+%:
+	dh $@ --without autoreconf --with python3
+
+override_dh_auto_build:
+	:
+
+override_dh_auto_test:
+	:
+
+override_dh_auto_install:
+	:
+
+override_dh_auto_clean:
+	find src -type d -name __pycache__ -prune -exec find {} -type f -delete \; -exec rmdir {} \; 2>/dev/null || true
+	dh_clean
+
+override_dh_install:
+	dh_install
+	mv debian/codex-lb-status/usr/bin/codex-lb-status.wrapper debian/codex-lb-status/usr/bin/codex-lb-status

@@ -1,0 +1,7 @@
+src/codex_lb_status usr/lib/codex-lb-status
+debian/codex-lb-status.wrapper usr/bin
+debian/codex-lb-status.1 usr/share/man/man1
+debian/io.github.victorstatko.codex_lb_status.desktop usr/share/applications
+debian/io.github.victorstatko.codex_lb_status.metainfo.xml usr/share/metainfo
+debian/icons/io.github.victorstatko.codex_lb_status.svg usr/share/icons/hicolor/scalable/apps
+README.md usr/share/doc/codex-lb-status

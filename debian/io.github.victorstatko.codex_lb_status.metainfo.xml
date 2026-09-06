@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.victorstatko.codex_lb_status</id>
+  <name>Codex LB Status</name>
+  <summary>Read-only Codex LB quota and account monitor</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <developer id="io.github.victorstatko">
+    <name>Victor Statko</name>
+  </developer>
+  <description>
+    <p>Monitor Codex LB account-pool quota and status from an Ubuntu desktop tray indicator.</p>
+    <p>The application is read-only and does not change accounts, routing policies, quota settings, or server administration.</p>
+  </description>
+  <url type="homepage">https://github.com/VictorStatko/codex-lb-status</url>
+  <launchable type="desktop-id">io.github.victorstatko.codex_lb_status.desktop</launchable>
+  <releases>
+    <release version="0.1.34" date="2026-09-06">
+      <description>
+        <p>Prepared the codebase for public development and hardened local session isolation.</p>
+        <p>Normalized desktop metadata and added a sanitized Ubuntu screenshot.</p>
+      </description>
+    </release>
+    <release version="0.1.33" date="2026-09-06">
+      <description>
+        <p>Refined Details labels and aligned pooled account values.</p>
+        <p>Prepared the project for public development and hardened local session isolation.</p>
+      </description>
+    </release>
+    <release version="0.1.32" date="2026-09-06">
+      <description>
+        <p>Matched pooled quota increase countdowns to account reset labels.</p>
+      </description>
+    </release>
+    <release version="0.1.31" date="2026-09-06">
+      <description>
+        <p>Added nearest quota-increase times to the pooled averages.</p>
+      </description>
+    </release>
+    <release version="0.1.30" date="2026-09-06">
+      <description>
+        <p>Preserved native message-dialog header space after Qt relayout.</p>
+      </description>
+    </release>
+    <release version="0.1.29" date="2026-09-06">
+      <description>
+        <p>Kept native message-dialog titles fully visible.</p>
+      </description>
+    </release>
+    <release version="0.1.28" date="2026-09-06">
+      <description>
+        <p>Scoped modal stacking to the Details window instead of all applications.</p>
+      </description>
+    </release>
+    <release version="0.1.27" date="2026-09-06">
+      <description>
+        <p>Closed all open dialogs whenever the Details window closes.</p>
+      </description>
+    </release>
+    <release version="0.1.26" date="2026-09-06">
+      <description>
+        <p>Kept modal dialogs above Details without disabling their controls.</p>
+      </description>
+    </release>
+    <release version="0.1.25" date="2026-09-05">
+      <description>
+        <p>Made the Details window fill the available screen height.</p>
+      </description>
+    </release>
+    <release version="0.1.24" date="2026-09-06">
+      <description>
+        <p>Adjusted Details window height for larger account pools.</p>
+      </description>
+    </release>
+    <release version="0.1.23" date="2026-09-06">
+      <description>
+        <p>Flattened quota summaries and tightened the Details window layout.</p>
+      </description>
+    </release>
+    <release version="0.1.22" date="2026-09-05">
+      <description>
+        <p>Highlighted quota limits and aligned secondary windows with Details.</p>
+      </description>
+    </release>
+    <release version="0.1.21" date="2026-09-06">
+      <description>
+        <p>Split collapsed account rows into clear identity/status and quota/reset lines.</p>
+      </description>
+    </release>
+    <release version="0.1.20" date="2026-09-06">
+      <description>
+        <p>Corrected spacing between the Actions label and its menu indicator.</p>
+      </description>
+    </release>
+    <release version="0.1.19" date="2026-09-06">
+      <description>
+        <p>Added stale-data warnings, an Actions menu, improved sign-in layouts, and collapsed reset summaries.</p>
+      </description>
+    </release>
+    <release version="0.1.18" date="2026-09-06">
+      <description>
+        <p>Simplified tray activation to a native double-click with no menu or registration workaround.</p>
+      </description>
+    </release>
+    <release version="0.1.17" date="2026-09-06">
+      <description>
+        <p>Corrected single-click Details activation on Ubuntu GNOME without exposing a popup command.</p>
+      </description>
+    </release>
+    <release version="0.1.16" date="2026-09-06">
+      <description>
+        <p>Made the Ubuntu activation bridge invisible and added click-to-toggle Details.</p>
+      </description>
+    </release>
+    <release version="0.1.15" date="2026-09-06">
+      <description>
+        <p>Restored single-click Details activation on Ubuntu AppIndicator hosts.</p>
+      </description>
+    </release>
+    <release version="0.1.14" date="2026-09-06">
+      <description>
+        <p>Replaced the tray menu with native hover status and click-to-pin details.</p>
+      </description>
+    </release>
+    <release version="0.1.13" date="2026-09-06">
+      <description>
+        <p>Added a dynamically fitted dual-quota tray label and simplified quota summaries.</p>
+      </description>
+    </release>
+    <release version="0.1.12" date="2026-09-05">
+      <description>
+        <p>Added a scalable fixed-size pool summary and a persistent in-menu refresh action.</p>
+      </description>
+    </release>
+    <release version="0.1.11" date="2026-09-05">
+      <description>
+        <p>Improved tray account navigation, refresh feedback, reset-credit visibility, dashboard access, and shutdown labeling.</p>
+      </description>
+    </release>
+    <release version="0.1.10" date="2026-09-05">
+      <description>
+        <p>Corrected tray-owned window lifecycle state so intentionally closed details stay closed while active minimized windows can still be restored.</p>
+      </description>
+    </release>
+    <release version="0.1.9" date="2026-09-05">
+      <description>
+        <p>Aligned account status and weighted quota semantics with Codex LB, completed API contract validation, and hardened authentication and background errors.</p>
+      </description>
+    </release>
+    <release version="0.1.8" date="2026-09-05">
+      <description>
+        <p>Corrected connected-account quota averages, account health indicators, window restoration, and right-side dialog placement.</p>
+      </description>
+    </release>
+    <release version="0.1.7" date="2026-09-05">
+      <description>
+        <p>Improved tray readability, signed-out privacy, account status indicators, and tray-attached windows.</p>
+      </description>
+    </release>
+    <release version="0.1.6" date="2026-09-05">
+      <description>
+        <p>Fixed repeated tray activation, added local sign-out, and reduced decorative action icons.</p>
+      </description>
+    </release>
+    <release version="0.1.5" date="2026-09-05">
+      <description>
+        <p>Added compact expandable account summaries and simplified tray actions.</p>
+      </description>
+    </release>
+    <release version="0.1.4" date="2026-09-05">
+      <description>
+        <p>Standardized all status indicators on round icons.</p>
+      </description>
+    </release>
+    <release version="0.1.3" date="2026-09-05">
+      <description>
+        <p>Removed the footer background from the status window.</p>
+      </description>
+    </release>
+    <release version="0.1.2" date="2026-09-05">
+      <description>
+        <p>Redesigned the native status, tray, settings, and authentication interfaces.</p>
+      </description>
+    </release>
+  </releases>
+  <provides>
+    <binary>codex-lb-status</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+</component>

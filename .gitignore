@@ -1,0 +1,36 @@
+# Python bytecode and environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Tests and tooling
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+
+# Python build output
+*.egg-info/
+build/
+dist/
+
+# Debian build output
+*.buildinfo
+*.changes
+*.deb
+*.deb.sha256
+debian/.debhelper/
+debian/codex-lb-status/
+debian/debhelper-build-stamp
+debian/files
+debian/*.debhelper
+debian/*.debhelper.log
+debian/*.substvars
+
+# Editors and operating systems
+.idea/
+.vscode/
+*.swp
+.DS_Store

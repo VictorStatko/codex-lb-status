@@ -1,0 +1,17 @@
+Source: codex-lb-status
+Section: utils
+Priority: optional
+Maintainer: Victor Statko <statkovit@gmail.com>
+Build-Depends: debhelper-compat (= 13), dh-python, python3-all
+Standards-Version: 4.7.0
+Homepage: https://github.com/VictorStatko/codex-lb-status
+Rules-Requires-Root: no
+
+Package: codex-lb-status
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3 (>= 3.12), python3-pyqt6 (>= 6.6), qt6-qpa-plugins, qt6-wayland, ca-certificates
+Suggests: gnome-shell-extension-appindicator
+Description: read-only Qt tray companion for Codex LB
+ A read-only Ubuntu desktop companion for monitoring Codex LB account-pool
+ status and quota. It uses the public dashboard API and does not provide
+ account, routing, quota, or server-administration controls.

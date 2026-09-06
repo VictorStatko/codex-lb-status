@@ -1,0 +1,192 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Source checks
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            python3 \
+            python3-venv \
+            python3-pyqt6 \
+            xvfb \
+            dbus-x11 \
+            qt6-qpa-plugins \
+            qt6-wayland
+      - name: Install locked developer tools
+        run: |
+          uv venv --system-site-packages
+          uv sync --locked --extra dev
+          echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+      - name: Run standard checks
+        run: make check
+      - name: Verify Qt UI under Xvfb and D-Bus
+        run: make test-ui
+
+  package:
+    name: Build Architecture-all package
+    runs-on: ubuntu-24.04
+    needs: checks
+    outputs:
+      version: ${{ steps.stage.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install packaging dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes \
+            debhelper-compat \
+            dh-python \
+            python3-all \
+            lintian
+      - name: Verify release metadata
+        if: github.ref_type == 'tag'
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: make release-check VERSION="${RELEASE_VERSION#v}"
+      - name: Build and inspect package
+        run: make package
+      - name: Stage package and checksum
+        id: stage
+        run: |
+          package_version="$(dpkg-parsechangelog -S Version)"
+          package_name="codex-lb-status_${package_version}_all.deb"
+          mkdir artifact
+          cp "../${package_name}" artifact/
+          cd artifact
+          sha256sum "${package_name}" > "${package_name}.sha256"
+          echo "version=${package_version}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Debian package"
+            echo
+            echo "Built \`${package_name}\` for installation testing."
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: codex-lb-status-deb
+          path: artifact/
+          if-no-files-found: error
+
+  package-install:
+    name: Install package (Ubuntu ${{ matrix.ubuntu }} ${{ matrix.arch }})
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ubuntu: "24.04"
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - ubuntu: "24.04"
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+          - ubuntu: "26.04"
+            arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - ubuntu: "26.04"
+            arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: codex-lb-status-deb
+          path: artifact
+      - name: Install and inspect package in clean Ubuntu
+        env:
+          CONTAINER_PLATFORM: ${{ matrix.platform }}
+          CONTAINER_UBUNTU: ${{ matrix.ubuntu }}
+        run: |
+          docker run --rm --platform "$CONTAINER_PLATFORM" \
+            --volume "$PWD:/workspace:ro" \
+            --workdir /workspace \
+            --env DEBIAN_FRONTEND=noninteractive \
+            "ubuntu:$CONTAINER_UBUNTU" \
+            bash -euxo pipefail -c '
+              PACKAGE_PATH="$(find /workspace/artifact -maxdepth 1 -type f -name "codex-lb-status_*_all.deb" -print -quit)"
+              test -n "$PACKAGE_PATH"
+              apt-get update
+              apt-get install --yes ca-certificates python3 python3-pyqt6 qt6-qpa-plugins qt6-wayland
+              apt-get install --yes "$PACKAGE_PATH"
+              apt-get check
+              codex-lb-status --version
+              test -x /usr/bin/codex-lb-status
+              test -f /usr/share/applications/io.github.victorstatko.codex_lb_status.desktop
+              test -f /usr/share/icons/hicolor/scalable/apps/io.github.victorstatko.codex_lb_status.svg
+              test -f /usr/share/metainfo/io.github.victorstatko.codex_lb_status.metainfo.xml
+              QT_QPA_PLATFORM=offscreen python3 -c "from PyQt6.QtCore import PYQT_VERSION_STR, QT_VERSION_STR; print(PYQT_VERSION_STR, QT_VERSION_STR)"
+              PYTHONPATH=/usr/lib/codex-lb-status python3 -c "import codex_lb_status; print(codex_lb_status.__version__)"
+              if [ "$(dpkg-query -W -f="\${Status}" gnome-shell 2>/dev/null || true)" = "install ok installed" ]; then
+                echo "gnome-shell must not be installed by this package" >&2
+                exit 1
+              fi
+            '
+
+  release:
+    name: Publish GitHub release
+    if: github.ref_type == 'tag'
+    needs:
+      - package
+      - package-install
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: codex-lb-status-deb
+          path: artifact
+      - name: Verify tested release artifacts
+        env:
+          PACKAGE_VERSION: ${{ needs.package.outputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          test "$RELEASE_TAG" = "v${PACKAGE_VERSION}"
+          cd artifact
+          sha256sum --check "codex-lb-status_${PACKAGE_VERSION}_all.deb.sha256"
+      - name: Publish release artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PACKAGE_VERSION: ${{ needs.package.outputs.version }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          package_path="artifact/codex-lb-status_${PACKAGE_VERSION}_all.deb"
+          gh release create "$RELEASE_TAG" \
+            --verify-tag \
+            --title "$RELEASE_TAG" \
+            --generate-notes \
+            "$package_path" \
+            "${package_path}.sha256"
+          {
+            echo "### Published release"
+            echo
+            echo "Published \`${RELEASE_TAG}\` using the package that passed every install test."
+          } >> "$GITHUB_STEP_SUMMARY"

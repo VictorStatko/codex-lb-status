@@ -1,0 +1,11 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: codex-lb-status
+Source: https://github.com/VictorStatko/codex-lb-status
+
+Files: *
+Copyright: 2026 Victor Statko <statkovit@gmail.com>
+License: GPL-3
+
+License: GPL-3
+ The GNU General Public License version 3 applies to this application. The full
+ text is available in /usr/share/common-licenses/GPL-3 on Debian systems.
