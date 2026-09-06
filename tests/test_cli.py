@@ -14,7 +14,7 @@ from codex_lb_status.app import (
 
 
 def test_version_constant() -> None:
-    assert __version__ == "0.1.35"
+    assert __version__ == "0.1.36"
 
 
 @pytest.mark.parametrize(
@@ -36,7 +36,7 @@ def test_version_option_prints_project_version(
         build_parser().parse_args(["--version"])
 
     assert raised.value.code == 0
-    assert capsys.readouterr().out == "codex-lb-status 0.1.35\n"
+    assert capsys.readouterr().out == "codex-lb-status 0.1.36\n"
 
 
 def test_conflicting_startup_intents_are_rejected() -> None:

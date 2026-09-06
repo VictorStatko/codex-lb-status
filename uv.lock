@@ -4,7 +4,7 @@ requires-python = ">=3.12"
 
 [[package]]
 name = "codex-lb-status"
-version = "0.1.35"
+version = "0.1.36"
 source = { editable = "." }
 
 [package.optional-dependencies]

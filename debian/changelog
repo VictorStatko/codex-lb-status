@@ -1,3 +1,9 @@
+codex-lb-status (0.1.36) unstable; urgency=medium
+
+  * Prepare release 0.1.36.
+
+ -- Victor Statko <statkovit@gmail.com>  Sun, 06 Sep 2026 13:24:51 +0300
+
 codex-lb-status (0.1.35) unstable; urgency=medium
 
   * Clean up CI warnings and Debian package validation dependencies.

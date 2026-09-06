@@ -403,7 +403,7 @@ dependencies are installed.
 Prepare the release metadata with one command:
 
 ```bash
-make prepare-release VERSION=0.1.35
+make prepare-release VERSION=0.1.36
 ```
 
 Review the generated Debian changelog and AppStream descriptions, run
@@ -411,8 +411,8 @@ Review the generated Debian changelog and AppStream descriptions, run
 After that commit reaches `main`, create and push the matching tag:
 
 ```bash
-git tag v0.1.35
-git push origin v0.1.35
+git tag v0.1.36
+git push origin v0.1.36
 ```
 
 The tag runs the complete CI pipeline. It validates every version location,
