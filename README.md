@@ -29,6 +29,8 @@ requiring the Codex LB dashboard to remain open.
 
 ## Screenshot
 
+![Codex LB Status tray indicator on Ubuntu](docs/screenshots/indicator.png)
+
 ![Codex LB Status showing quota and account data on Ubuntu](docs/screenshots/details.png)
 
 ## Requirements
@@ -285,16 +287,33 @@ X11), and the exact in-app error. Never attach cookie files or credentials.
 
 ## Remove
 
-Remove the system-installed application with:
+First exit the running application with **Actions → Stop indicator**. Then
+remove the system package and every file Codex LB Status created for the current
+desktop user:
 
 ```bash
-sudo apt remove codex-lb-status
+sudo apt purge codex-lb-status
+
+codex_config_home="${XDG_CONFIG_HOME:-$HOME/.config}"
+codex_state_home="${XDG_STATE_HOME:-$HOME/.local/state}"
+
+rm -f -- \
+  "$codex_config_home/autostart/io.github.victorstatko.codex_lb_status.desktop"
+rm -rf -- \
+  "$codex_config_home/codex-lb-status" \
+  "$codex_state_home/codex-lb-status"
 ```
 
-Removal leaves user preferences, saved sessions, and the user-created autostart
-entry in place. Disable **Launch at login** before removal if the preserved
-autostart entry is no longer wanted. The paths are listed in
-[Configure](#configure) for manual cleanup.
+The `rm` commands permanently delete all preferences and saved dashboard
+sessions, so omit them if you may reinstall the application and want to keep
+that data. Run them as the desktop user, not with `sudo`. If more than one
+operating-system user ran Codex LB Status, repeat the user-data cleanup while
+signed in as each of those users.
+
+Codex LB Status creates no cache, log, database, or system service. The cleanup
+above does not change the Codex LB server, server-side sessions, or browser
+data. A downloaded `.deb` or a source checkout is not managed by APT and can be
+deleted separately if it is no longer wanted.
 
 ## Development
 
