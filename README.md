@@ -62,10 +62,10 @@ The released Debian package is tested on every platform marked below:
 The package requires Python 3.12 or newer, PyQt6 6.6 or newer, and Qt 6.4 or
 newer. APT checks these runtime requirements during installation.
 
-| Codex LB Status | Codex LB server | Compatibility |
-| --- | --- | --- |
-| Current `0.1.x` release line | `1.25.0-beta.1` at [`dd28d7d`](https://github.com/Soju06/codex-lb/commit/dd28d7dff94cdd4919067c1986fd9606b9bbc6b9) | Dashboard and authentication API contract verified |
-| `0.1.37` | `1.25.0-beta.9` | Session permission schema verified against a running server; account schema checked against release source; refresh and sign-in flows regression-tested |
+| Codex LB Status | Codex LB server |
+| --- | --- |
+| `0.1.36` | `1.25.0-beta.1` at [`dd28d7d`](https://github.com/Soju06/codex-lb/commit/dd28d7dff94cdd4919067c1986fd9606b9bbc6b9) |
+| `0.1.37` | `1.25.0-beta.9` |
 
 These are verified baselines. Additive API changes are tolerated: unknown fields
 are ignored at every nesting level, new permission names and scopes are retained,
@@ -77,12 +77,6 @@ and pooled quota until their meaning is supported.
 The client still validates the structure and types of fields it reads, including
 authentication booleans, account identifiers, timestamps, and quota values.
 Missing required fields or invalid data produce an invalid-response error.
-
-Codex LB `1.25.0-beta.9` adds scoped permissions such as `accounts:read:all`
-alongside the existing `read` and `write` aliases. The client accepts both
-formats. If the server update expires a saved dashboard session, sign in again
-from Details. Password-only sign-in is supported when the server does not
-require a username (single-user installations).
 
 ## Install
 
