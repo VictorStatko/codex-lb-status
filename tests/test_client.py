@@ -67,6 +67,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
     error_status = 200
     error_retry_after: str | None = None
     invalid_session_body = False
+    session_permissions: ClassVar[list[str] | None] = None
+    response_extensions: ClassVar[dict[str, object]] = {}
+    accounts_response_override: ClassVar[dict[str, object] | None] = None
     admin_response_override: dict[str, object] | None = None
     guest_response_override: dict[str, object] | None = None
     totp_response_override: dict[str, object] | None = None
@@ -85,6 +88,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         cookie: str | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
+        if isinstance(body, dict):
+            body = {**body, **self.response_extensions}
+        if (
+            isinstance(body, dict)
+            and "authenticated" in body
+            and self.session_permissions is not None
+        ):
+            body = {**body, "permissions": self.session_permissions}
         payload = json.dumps(body).encode()
         self.send_response(status)
         self.send_header(
@@ -151,7 +162,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not self.no_auth and not authenticated:
                 self._send(401, {"error": "login required"})
             else:
-                self._send(200, {"accounts": []})
+                self._send(200, self.accounts_response_override or {"accounts": []})
         else:
             self._send(404, {"error": "unknown"})
 
@@ -224,6 +235,9 @@ def server():
     DashboardHandler.error_status = 200
     DashboardHandler.error_retry_after = None
     DashboardHandler.invalid_session_body = False
+    DashboardHandler.session_permissions = None
+    DashboardHandler.response_extensions = {}
+    DashboardHandler.accounts_response_override = None
     DashboardHandler.admin_response_override = None
     DashboardHandler.guest_response_override = None
     DashboardHandler.totp_response_override = None
@@ -249,6 +263,108 @@ def test_no_auth_dashboard_loads_without_prompting(server, tmp_path) -> None:
     payload = client.refresh()
     assert payload.accounts.accounts == ()
     assert not any(path.endswith("password/login") for _, path, *_ in handler.requests)
+
+
+@pytest.mark.parametrize("mode", ["disabled", "admin", "totp", "guest"])
+@pytest.mark.parametrize("scoped_permissions", [False, True], ids=["legacy", "beta9"])
+def test_refresh_and_login_accept_legacy_and_scoped_permissions(
+    server, tmp_path, mode, scoped_permissions
+) -> None:
+    base_url, handler = server
+    permissions = ["read"]
+    if mode != "guest":
+        permissions += ["write"]
+    if scoped_permissions:
+        permissions += ["accounts:read:all", "dashboard:read:all"]
+        if mode != "guest":
+            permissions += ["accounts:write:all", "users:manage:all"]
+    handler.session_permissions = permissions
+    client = make_client(base_url, tmp_path)
+    if mode == "disabled":
+        handler.no_auth = True
+    elif mode == "guest":
+        assert client.login_guest().permissions == tuple(permissions)
+    elif mode == "totp":
+        handler.require_totp = True
+        pending = client.start_admin_login("secret")
+        assert pending.totp_required_on_login
+        assert pending.permissions == tuple(permissions)
+        assert not list(client.session_store.load(base_url))
+        assert client.verify_totp("123456").permissions == tuple(permissions)
+    else:
+        assert client.login_admin("secret").permissions == tuple(permissions)
+
+    payload = client.refresh()
+
+    assert payload.session.authenticated
+    assert payload.session.permissions == tuple(permissions)
+    assert payload.accounts.accounts == ()
+
+
+def test_beta9_expired_session_exposes_login_required(server, tmp_path) -> None:
+    base_url, handler = server
+    handler.session_permissions = ["read", "write", "accounts:read:all"]
+    client = make_client(base_url, tmp_path)
+
+    with pytest.raises(AuthenticationRequired) as raised:
+        client.refresh()
+
+    assert raised.value.session is not None
+    assert not raised.value.session.authenticated
+    assert raised.value.session.password_required
+    assert raised.value.session.permissions == tuple(handler.session_permissions)
+
+
+@pytest.mark.parametrize("mode", ["disabled", "admin", "totp", "guest"])
+def test_api_additions_do_not_block_refresh_or_sign_in(server, tmp_path, mode) -> None:
+    base_url, handler = server
+    handler.response_extensions = {"futureField": {"new": [1, None, True]}}
+    handler.session_permissions = ["read", "future_permission", "accounts:read:team"]
+    handler.accounts_response_override = {
+        "accounts": [
+            {
+                "accountId": "future",
+                "email": "future@example.com",
+                "displayName": "Future account",
+                "planType": "future_plan",
+                "status": "future_status",
+                "routingPolicy": "future_policy",
+                "usage": {"primaryRemainingPercent": 50, "futureWindow": {}},
+                "futureField": {"unknown": []},
+            }
+        ]
+    }
+    client = make_client(base_url, tmp_path)
+    if mode == "disabled":
+        handler.no_auth = True
+    elif mode == "guest":
+        assert client.login_guest().authenticated
+    elif mode == "totp":
+        handler.require_totp = True
+        assert client.start_admin_login("secret").totp_required_on_login
+        assert client.verify_totp("123456").authenticated
+    else:
+        assert client.login_admin("secret").authenticated
+
+    payload = client.refresh()
+
+    assert payload.session.permissions == tuple(handler.session_permissions)
+    assert payload.accounts.accounts[0].status == "future_status"
+    assert payload.accounts.accounts[0].routing_policy == "future_policy"
+    assert payload.accounts.accounts[0].usage.primary_remaining_percent == 50
+
+
+@pytest.mark.parametrize("field", ["role", "authMode"])
+def test_refresh_accepts_new_session_metadata_labels(server, tmp_path, field) -> None:
+    base_url, handler = server
+    handler.no_auth = True
+    handler.response_extensions = {field: "future_value"}
+
+    payload = make_client(base_url, tmp_path).refresh()
+
+    attribute = "role" if field == "role" else "auth_mode"
+    assert getattr(payload.session, attribute) == "future_value"
+    assert payload.session.authenticated
 
 
 def test_admin_login_persists_cookie_only_after_success(server, tmp_path) -> None:

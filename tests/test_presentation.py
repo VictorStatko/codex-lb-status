@@ -13,6 +13,7 @@ from codex_lb_status.models import (
     AccountUsage,
     RequestUsage,
     WarmUpState,
+    parse_accounts_response,
 )
 from codex_lb_status.presentation import (
     QuotaTone,
@@ -100,6 +101,33 @@ def test_health_and_quota_eligibility_use_distinct_status_semantics(
     summary = summarize_accounts([item])
     assert summary.active_count == int(healthy)
     assert (summary.primary is not None) is quota_eligible
+
+
+def test_new_status_is_displayed_without_counting_it_as_healthy_or_pooling_quota() -> (
+    None
+):
+    parsed = parse_accounts_response(
+        {
+            "accounts": [
+                {
+                    "accountId": "future",
+                    "email": "future@example.com",
+                    "displayName": "Future account",
+                    "planType": "plus",
+                    "status": "future_status",
+                    "usage": {"primaryRemainingPercent": 100},
+                }
+            ]
+        }
+    ).accounts[0]
+    summary = summarize_accounts([account("known", primary=40), parsed])
+
+    assert display_status(parsed.status) == "Future Status"
+    assert not account_connection_is_healthy(parsed)
+    assert not account_is_quota_eligible(parsed)
+    assert summary.active_count == 1
+    assert summary.total_count == 2
+    assert summary.primary == 40
 
 
 def test_credit_fields_are_capacity_weighted_per_window() -> None:

@@ -65,11 +65,24 @@ newer. APT checks these runtime requirements during installation.
 | Codex LB Status | Codex LB server | Compatibility |
 | --- | --- | --- |
 | Current `0.1.x` release line | `1.25.0-beta.1` at [`dd28d7d`](https://github.com/Soju06/codex-lb/commit/dd28d7dff94cdd4919067c1986fd9606b9bbc6b9) | Dashboard and authentication API contract verified |
+| `0.1.37` | `1.25.0-beta.9` | Session permission schema verified against a running server; account schema checked against release source; refresh and sign-in flows regression-tested |
 
-This is a verified baseline, not a guarantee for every older or newer Codex LB
-release. Unknown response fields are ignored, but removing or changing a
-required field causes Codex LB Status to stop the refresh with an
-invalid-response error instead of displaying guessed data.
+These are verified baselines. Additive API changes are tolerated: unknown fields
+are ignored at every nesting level, new permission names and scopes are retained,
+and new account status, routing, role, and authentication-mode labels do not
+invalidate a refresh. Repeated permissions are deduplicated. Unknown account
+statuses are displayed, counted in the total, and excluded from active counts
+and pooled quota until their meaning is supported.
+
+The client still validates the structure and types of fields it reads, including
+authentication booleans, account identifiers, timestamps, and quota values.
+Missing required fields or invalid data produce an invalid-response error.
+
+Codex LB `1.25.0-beta.9` adds scoped permissions such as `accounts:read:all`
+alongside the existing `read` and `write` aliases. The client accepts both
+formats. If the server update expires a saved dashboard session, sign in again
+from Details. Password-only sign-in is supported when the server does not
+require a username (single-user installations).
 
 ## Install
 
@@ -411,7 +424,7 @@ dependencies are installed.
 Prepare the release metadata with one command:
 
 ```bash
-make prepare-release VERSION=0.1.36
+make prepare-release VERSION=0.1.37
 ```
 
 Review the generated Debian changelog and AppStream descriptions, run
@@ -419,8 +432,8 @@ Review the generated Debian changelog and AppStream descriptions, run
 After that commit reaches `main`, create and push the matching tag:
 
 ```bash
-git tag v0.1.36
-git push origin v0.1.36
+git tag v0.1.37
+git push origin v0.1.37
 ```
 
 The tag runs the complete CI pipeline. It validates every version location,

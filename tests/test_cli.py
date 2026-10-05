@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import tomllib
+from pathlib import Path
+
 import pytest
 
 from codex_lb_status import __version__
@@ -13,8 +16,10 @@ from codex_lb_status.app import (
 )
 
 
-def test_version_constant() -> None:
-    assert __version__ == "0.1.36"
+def test_version_constant_matches_project_metadata() -> None:
+    root = Path(__file__).resolve().parents[1]
+    metadata = tomllib.loads((root / "pyproject.toml").read_text())
+    assert __version__ == metadata["project"]["version"]
 
 
 @pytest.mark.parametrize(
@@ -36,7 +41,7 @@ def test_version_option_prints_project_version(
         build_parser().parse_args(["--version"])
 
     assert raised.value.code == 0
-    assert capsys.readouterr().out == "codex-lb-status 0.1.36\n"
+    assert capsys.readouterr().out == f"codex-lb-status {__version__}\n"
 
 
 def test_conflicting_startup_intents_are_rejected() -> None:

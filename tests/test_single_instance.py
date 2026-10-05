@@ -64,9 +64,9 @@ def test_concurrent_acquire_creates_only_one_owner(monkeypatch) -> None:
 
         def listen(self, _name: str) -> bool:
             with self.endpoint_lock:
-                if self.endpoint_listening:
+                if type(self).endpoint_listening:
                     return False
-                self.endpoint_listening = True
+                type(self).endpoint_listening = True
                 return True
 
         @classmethod
@@ -83,6 +83,7 @@ def test_concurrent_acquire_creates_only_one_owner(monkeypatch) -> None:
         f"io.github.victorstatko.codex_lb_status.test.{os.getpid()}.{uuid.uuid4().hex}"
     )
     probe_barrier = threading.Barrier(2)
+    acquisition_barrier = threading.Barrier(2)
     results = []
     errors = []
 
@@ -100,6 +101,9 @@ def test_concurrent_acquire_creates_only_one_owner(monkeypatch) -> None:
         instance._forward_to_existing = probe
         try:
             results.append(instance.acquire("background"))
+            # Keep the owner alive until both contenders have tried. Closing
+            # it earlier legitimately lets the second contender become owner.
+            acquisition_barrier.wait(timeout=1)
         except BaseException as error:
             errors.append(error)
         finally:

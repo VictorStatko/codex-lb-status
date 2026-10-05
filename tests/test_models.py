@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import UTC, datetime
 
 import pytest
@@ -173,6 +174,64 @@ def test_complete_dashboard_session_contract_is_decoded() -> None:
     assert session.guest_password_required is True
 
 
+def add_unknown_fields(value: object, extension: object) -> object:
+    if isinstance(value, dict):
+        return {
+            **{key: add_unknown_fields(item, extension) for key, item in value.items()},
+            "unknownFutureField": deepcopy(extension),
+        }
+    if isinstance(value, list):
+        return [add_unknown_fields(item, extension) for item in value]
+    return value
+
+
+@pytest.mark.parametrize(
+    "extension",
+    [None, True, 42, "future", [None, {"new": True}], {"status": 1, "usage": []}],
+)
+def test_unknown_fields_at_every_response_level_are_ignored(extension: object) -> None:
+    accounts = {"accounts": [account_json()]}
+    session = session_json()
+
+    assert parse_accounts_response(
+        add_unknown_fields(accounts, extension)
+    ) == parse_accounts_response(accounts)
+    assert parse_dashboard_session(
+        add_unknown_fields(session, extension)
+    ) == parse_dashboard_session(session)
+
+
+@pytest.mark.parametrize("field", ["status", "routingPolicy", "planType"])
+def test_new_account_metadata_labels_are_preserved(field: str) -> None:
+    raw = account_json(**{field: "future_value"})
+    parsed = parse_accounts_response({"accounts": [raw]}).accounts[0]
+    attribute = {
+        "status": "status",
+        "routingPolicy": "routing_policy",
+        "planType": "plan_type",
+    }[field]
+
+    assert getattr(parsed, attribute) == "future_value"
+
+
+@pytest.mark.parametrize("field", ["role", "authMode"])
+def test_new_session_metadata_labels_are_preserved(field: str) -> None:
+    session = parse_dashboard_session(session_json(**{field: "future_value"}))
+
+    assert (
+        getattr(session, "role" if field == "role" else "auth_mode") == "future_value"
+    )
+
+
+def test_new_additional_quota_routing_policy_is_preserved() -> None:
+    raw = account_json()
+    raw["additionalQuotas"][0]["routingPolicy"] = "future_policy"
+
+    account = parse_accounts_response({"accounts": [raw]}).accounts[0]
+
+    assert account.additional_quotas[0].routing_policy == "future_policy"
+
+
 def test_session_schema_defaults_match_upstream_defaults() -> None:
     session = parse_dashboard_session(
         {
@@ -186,6 +245,51 @@ def test_session_schema_defaults_match_upstream_defaults() -> None:
     assert session.role == "admin"
     assert session.permissions == ("read", "write")
     assert session.password_management_enabled is True
+
+
+@pytest.mark.parametrize(
+    "permissions",
+    [
+        ["read", "write"],
+        ["read"],
+        [],
+        [
+            "read",
+            "write",
+            "accounts:export:all",
+            "accounts:read:all",
+            "accounts:write:all",
+            "api_keys:assign:all",
+            "api_keys:read:all",
+            "api_keys:write:all",
+            "audit:read:all",
+            "conversations:read:all",
+            "dashboard:read:all",
+            "ops:write:all",
+            "roles:manage:all",
+            "security:write:all",
+            "users:manage:all",
+        ],
+        ["read", "accounts:read:all", "dashboard:read:all"],
+        ["read", "api_keys:read:own", "dashboard:read:own"],
+        ["read", "future_resource:read:all"],
+        ["read", "future_permission", "accounts:read:team"],
+    ],
+)
+def test_session_accepts_legacy_and_scoped_permissions(permissions: list[str]) -> None:
+    session = parse_dashboard_session(session_json(permissions=permissions))
+
+    assert session.permissions == tuple(permissions)
+
+
+def test_repeated_permissions_are_deduplicated() -> None:
+    session = parse_dashboard_session(
+        session_json(
+            permissions=["read", "future_permission", "read", "future_permission"]
+        )
+    )
+
+    assert session.permissions == ("read", "future_permission")
 
 
 def test_accounts_must_be_an_array() -> None:
@@ -219,8 +323,11 @@ def test_invalid_percentages_are_rejected(value: object) -> None:
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("status", "offline"),
-        ("routingPolicy", "random"),
+        ("status", None),
+        ("status", ""),
+        ("status", 1),
+        ("routingPolicy", []),
+        ("routingPolicy", " "),
         ("securityWorkAuthorized", 1),
         ("limitWarmupEnabled", "yes"),
         ("isEmailDuplicate", 0),
@@ -229,7 +336,7 @@ def test_invalid_percentages_are_rejected(value: object) -> None:
         ("capacityCreditsPrimary", float("nan")),
     ],
 )
-def test_invalid_account_enum_and_scalar_values_are_rejected(
+def test_invalid_account_scalar_values_are_rejected(
     field: str,
     value: object,
 ) -> None:
@@ -266,7 +373,7 @@ def test_invalid_nested_values_are_rejected() -> None:
                             {
                                 "limitName": "Extra",
                                 "meteredFeature": "extra",
-                                "routingPolicy": "random",
+                                "routingPolicy": 1,
                             }
                         ]
                     )
@@ -305,11 +412,19 @@ def test_credit_pairs_are_consistent() -> None:
     [
         ("authenticated", 1),
         ("passwordRequired", "yes"),
-        ("authMode", "proxy"),
-        ("role", "operator"),
+        ("authMode", None),
+        ("authMode", []),
+        ("authMode", " "),
+        ("role", False),
+        ("role", ""),
         ("permissions", "read"),
-        ("permissions", ["delete"]),
-        ("permissions", ["read", "read"]),
+        ("permissions", [None]),
+        ("permissions", [1]),
+        ("permissions", [{}]),
+        ("permissions", [[]]),
+        ("permissions", [""]),
+        ("permissions", [" "]),
+        ("permissions", ["\n"]),
     ],
 )
 def test_invalid_session_values_are_rejected(field: str, value: object) -> None:

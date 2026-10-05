@@ -1,5 +1,5 @@
 """Read-only Ubuntu tray companion for Codex LB."""
 
-__version__ = "0.1.36"
+__version__ = "0.1.37"
 
 __all__ = ["__version__"]

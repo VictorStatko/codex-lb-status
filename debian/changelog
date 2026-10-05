@@ -1,3 +1,13 @@
+codex-lb-status (0.1.37) unstable; urgency=medium
+
+  * Fix compatibility with Codex LB 1.25.0-beta.9 session permissions.
+  * Tolerate additive API fields and metadata values while retaining legacy
+    response support and required-data validation.
+  * Add private local diagnostics for session and fetch failures.
+  * Serialize concurrent application launches to prevent duplicate indicators.
+
+ -- Victor Statko <statkovit@gmail.com>  Mon, 05 Oct 2026 20:09:49 +0300
+
 codex-lb-status (0.1.36) unstable; urgency=medium
 
   * Prepare release 0.1.36.

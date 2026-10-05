@@ -1,4 +1,4 @@
-"""Typed, defensive models for the current Codex LB dashboard contract."""
+"""Typed Codex LB responses that tolerate additive server API changes."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ class ContractError(ValueError):
 
 JsonObject = Mapping[str, Any]
 
+# Known labels are reference data, not exhaustive response validation rules.
 ACCOUNT_STATUSES = frozenset(
     {
         "active",
@@ -57,21 +58,16 @@ def _optional_string(body: JsonObject, key: str, path: str) -> str | None:
     return value if value.strip() else None
 
 
-def _enum_string(
+def _string_with_default(
     body: JsonObject,
     key: str,
     path: str,
-    choices: frozenset[str],
     *,
-    default: str | None = None,
+    default: str,
 ) -> str:
-    if key not in body and default is not None:
+    if key not in body:
         return default
-    value = _required_string(body, key, path)
-    if value not in choices:
-        expected = ", ".join(sorted(choices))
-        raise ContractError(f"{path}.{key} must be one of: {expected}")
-    return value
+    return _required_string(body, key, path)
 
 
 def _required_bool(body: JsonObject, key: str, path: str) -> bool:
@@ -234,14 +230,14 @@ class DashboardSession:
             raise ContractError("response.permissions must be an array")
         permissions: list[str] = []
         for index, permission in enumerate(raw_permissions):
-            if permission not in DASHBOARD_PERMISSIONS:
-                expected = ", ".join(sorted(DASHBOARD_PERMISSIONS))
+            # Permissions are server metadata; this client grants no access
+            # based on their names and must tolerate new permissions/scopes.
+            if not isinstance(permission, str) or not permission.strip():
                 raise ContractError(
-                    f"response.permissions[{index}] must be one of: {expected}"
+                    f"response.permissions[{index}] must be a non-empty string"
                 )
-            if permission in permissions:
-                raise ContractError("response.permissions must not contain duplicates")
-            permissions.append(permission)
+            if permission not in permissions:
+                permissions.append(permission)
         return cls(
             authenticated=_required_bool(body, "authenticated", path),
             password_required=_required_bool(body, "passwordRequired", path),
@@ -253,11 +249,10 @@ class DashboardSession:
             bootstrap_token_configured=_bool_with_default(
                 body, "bootstrapTokenConfigured", path, False
             ),
-            auth_mode=_enum_string(
+            auth_mode=_string_with_default(
                 body,
                 "authMode",
                 path,
-                DASHBOARD_AUTH_MODES,
                 default="standard",
             ),
             password_management_enabled=_bool_with_default(
@@ -266,7 +261,7 @@ class DashboardSession:
             password_session_active=_bool_with_default(
                 body, "passwordSessionActive", path, False
             ),
-            role=_enum_string(body, "role", path, DASHBOARD_ROLES, default="admin"),
+            role=_string_with_default(body, "role", path, default="admin"),
             permissions=tuple(permissions),
             guest_access_enabled=_bool_with_default(
                 body, "guestAccessEnabled", path, False
@@ -462,11 +457,10 @@ class AccountAdditionalQuota:
             limit_name=_required_string(body, "limitName", path),
             metered_feature=_required_string(body, "meteredFeature", path),
             display_label=_optional_string(body, "displayLabel", path),
-            routing_policy=_enum_string(
+            routing_policy=_string_with_default(
                 body,
                 "routingPolicy",
                 path,
-                ADDITIONAL_QUOTA_ROUTING_POLICIES,
                 default="inherit",
             ),
             primary_window=AccountAdditionalWindow.from_json(
@@ -542,14 +536,13 @@ class AccountSummary:
             workspace_label=_optional_string(body, "workspaceLabel", path),
             seat_type=_optional_string(body, "seatType", path),
             plan_type=_required_string(body, "planType", path),
-            routing_policy=_enum_string(
+            routing_policy=_string_with_default(
                 body,
                 "routingPolicy",
                 path,
-                ACCOUNT_ROUTING_POLICIES,
                 default="normal",
             ),
-            status=_enum_string(body, "status", path, ACCOUNT_STATUSES),
+            status=_required_string(body, "status", path),
             security_work_authorized=_bool_with_default(
                 body, "securityWorkAuthorized", path, False
             ),
