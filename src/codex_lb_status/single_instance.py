@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
+import hashlib
+import os
+import tempfile
+
 APPLICATION_SERVER_NAME = "io.github.victorstatko.codex_lb_status"
 PROTOCOL_VERSION = "v1"
 ALLOWED_COMMANDS = frozenset(("default", "settings", "background"))
 MAX_COMMAND_BYTES = 128
 
 try:
-    from PyQt6.QtCore import QObject, pyqtSignal
+    from PyQt6.QtCore import QLockFile, QObject, QStandardPaths, pyqtSignal
     from PyQt6.QtNetwork import QLocalServer, QLocalSocket
 except ImportError:  # pragma: no cover - exercised only without PyQt6.
     QObject = None
@@ -31,6 +35,19 @@ def decode_command(payload: bytes) -> str | None:
     if version != PROTOCOL_VERSION or not separator or command not in ALLOWED_COMMANDS:
         return None
     return command
+
+
+def _lock_file_path(name: str) -> str:
+    """Return a per-user path that is stable for one local-server name."""
+
+    digest = hashlib.sha256(name.encode("utf-8")).hexdigest()[:24]
+    user_id = getattr(os, "getuid", lambda: 0)()
+    directory = (
+        QStandardPaths.writableLocation(QStandardPaths.StandardLocation.RuntimeLocation)
+        or QStandardPaths.writableLocation(QStandardPaths.StandardLocation.TempLocation)
+        or tempfile.gettempdir()
+    )
+    return os.path.join(directory, f"codex-lb-status-{user_id}-{digest}.lock")
 
 
 if QObject is None:
@@ -57,6 +74,12 @@ else:
             self.server.setSocketOptions(QLocalServer.SocketOption.UserAccessOption)
             self.server.newConnection.connect(self._accept_connection)
             self._sockets: list[QLocalSocket] = []
+            self._lock_file = QLockFile(_lock_file_path(name))
+            # This lock is held for the lifetime of the process. A crashed
+            # process releases the OS lock immediately; the lock file itself
+            # may remain and must not block a later launch based on its age.
+            self._lock_file.setStaleLockTime(0)
+            self._lock_acquired = False
             self._owns_server = False
 
         @property
@@ -65,21 +88,40 @@ else:
 
         def acquire(self, command: str = "default") -> bool:
             encode_command(command)
-            # QLocalServer can report success for a duplicate UserAccess
-            # listener on some Qt/Linux combinations. Probe first so a live
-            # owner is never shadowed by a second listener.
             if self._forward_to_existing(command):
                 return False
-            if self.server.listen(self.name):
-                self._owns_server = True
-                return True
-            # A failed connection proves that no server accepted this
-            # client's bounded probe, so removing a stale endpoint is safe.
-            QLocalServer.removeServer(self.name)
-            if not self.server.listen(self.name):
+
+            # The probe and server.listen() cannot be the ownership decision:
+            # two launchers can pass the probe before either one listens. The
+            # lock serializes that gap and makes stale-socket removal safe for
+            # all instances using this version of the application.
+            if not self._lock_file.tryLock(0):
                 return False
+
+            self._lock_acquired = True
+            if self._forward_to_existing(command):
+                self._release_lock()
+                return False
+            if not self.server.listen(self.name):
+                # A live server may have appeared before we acquired the
+                # lock (for example, an older application version).
+                if self._forward_to_existing(command):
+                    self._release_lock()
+                    return False
+                # At this point the endpoint is not accepting connections,
+                # so it is the crash residue that Qt documents removeServer()
+                # for. The lock prevents another current launcher racing us.
+                QLocalServer.removeServer(self.name)
+                if not self.server.listen(self.name):
+                    self._release_lock()
+                    return False
             self._owns_server = True
             return True
+
+        def _release_lock(self) -> None:
+            if self._lock_acquired:
+                self._lock_file.unlock()
+                self._lock_acquired = False
 
         def _forward_to_existing(self, command: str) -> bool:
             socket = QLocalSocket(self)
@@ -123,6 +165,7 @@ else:
             if self._owns_server:
                 self.server.close()
                 self._owns_server = False
+            self._release_lock()
 
 
 __all__ = [
