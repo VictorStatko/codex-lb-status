@@ -8,6 +8,7 @@ QApplication or require a running display server.
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import sys
 from collections.abc import MutableMapping, Sequence
@@ -15,6 +16,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from . import __version__
+from .diagnostics import configure_logging, log_event
 
 MIN_PYQT6 = (6, 6)
 MIN_QT6 = (6, 4)
@@ -127,6 +129,19 @@ def configure_qt_platform(
 def run_application(options: CliOptions) -> int:
     """Start one Qt application instance for the requested intent."""
 
+    configure_logging()
+    command = (
+        "background"
+        if options.background
+        else ("settings" if options.settings else "default")
+    )
+    log_event(
+        logging.INFO,
+        "application_starting",
+        version=__version__,
+        command=command,
+        process_id=os.getpid(),
+    )
     configure_qt_platform()
     validate_qt_runtime()
     from PyQt6.QtWidgets import QApplication
@@ -136,18 +151,17 @@ def run_application(options: CliOptions) -> int:
 
     qt_app = QApplication.instance() or QApplication([sys.argv[0]])
     configure_application(qt_app)
-    command = (
-        "background"
-        if options.background
-        else ("settings" if options.settings else "default")
-    )
     instance = SingleInstance(parent=qt_app)
     if not instance.acquire(command):
+        log_event(logging.INFO, "application_already_running", command=command)
         return 0
     service = ApplicationService(qt_app, options, instance)
     service.start()
     # Keep the service reference alive for the duration of the event loop.
-    return qt_app.exec()
+    try:
+        return qt_app.exec()
+    finally:
+        log_event(logging.INFO, "application_stopped", command=command)
 
 
 class ApplicationService:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import ssl
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -302,12 +303,19 @@ def test_passwordless_and_password_guest_login_have_expected_bodies(
     assert json.loads(guest_requests[1][2]) == {"password": "guest"}
 
 
-def test_401_clears_session_and_exposes_login_required(server, tmp_path) -> None:
+def test_401_clears_session_and_exposes_login_required(
+    server, tmp_path, caplog
+) -> None:
     base_url, _ = server
     client = make_client(base_url, tmp_path)
+    caplog.set_level(logging.INFO, logger="codex_lb_status")
     with pytest.raises(AuthenticationRequired):
         client.refresh()
     assert list(client.session_store.load(base_url)) == []
+    events = [record.diagnostic_event for record in caplog.records]
+    assert "refresh_authentication_failure" in events
+    assert "session_local_state_cleared" in events
+    assert all("login required" not in record.getMessage() for record in caplog.records)
 
 
 def test_redirects_are_rejected(server, tmp_path) -> None:

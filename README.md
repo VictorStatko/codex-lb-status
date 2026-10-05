@@ -220,6 +220,7 @@ the XDG base-directory environment variables and otherwise uses these paths:
 | --- | --- |
 | Preferences | `~/.config/codex-lb-status/config.json` |
 | Per-origin session cookies | `~/.local/state/codex-lb-status/sessions/` |
+| Diagnostic log | `~/.local/state/codex-lb-status/codex-lb-status.log` |
 | Launch-at-login entry | `~/.config/autostart/io.github.victorstatko.codex_lb_status.desktop` |
 
 Preferences and cookies are written atomically with user-only permissions.
@@ -263,12 +264,14 @@ The GET requests read dashboard state. The POST requests only establish or
 verify a dashboard session. No account, routing, quota, import/export, reset,
 logout, credential-management, or server-settings endpoint is implemented.
 
-The application sends no analytics or telemetry. It stores cookies separately
-for each origin, discards expired or cross-origin cookies, rejects HTTP
-redirects, validates TLS certificates through the system trust store, and
-limits response size. Passwords, TOTP codes, response bodies, and authentication
-errors are not persisted. Server-provided labels are rendered as bounded plain
-text.
+The application sends no analytics or remote telemetry. It stores cookies
+separately for each origin, discards expired or cross-origin cookies, rejects
+HTTP redirects, validates TLS certificates through the system trust store, and
+limits response size. A small, rotating local diagnostic log records request
+paths, status codes, timing, authentication state, and safe error codes to help
+investigate intermittent failures. Passwords, TOTP codes, cookie values,
+response bodies, and authentication error text are not persisted. Server-
+provided labels are rendered as bounded plain text.
 
 ## Troubleshooting
 
@@ -276,6 +279,7 @@ text.
 | --- | --- |
 | **Could not load account status** | Confirm that Codex LB is running, verify the server address in Settings, then select **Refresh**. Requests time out after 10 seconds. |
 | **Last update failed** | The application is showing the last successful snapshot. Restore connectivity or authentication and refresh again. |
+| **Signed out unexpectedly** | After it happens, save `~/.local/state/codex-lb-status/codex-lb-status.log` and the Codex LB server logs. The local log distinguishes session expiry, HTTP 401 responses, network failures, and local cookie-state problems. Never attach the cookie files. |
 | No tray icon | On GNOME, enable an AppIndicator/StatusNotifierItem extension. On KDE or Xfce, enable the desktop's system-tray widget. A foreground launch remains usable without a tray. |
 | Remote server fails over HTTPS | Verify the hostname and certificate chain. The certificate must be trusted by Ubuntu's system CA store. |
 | Trusted-header login does not work | Confirm that the reverse proxy injects its trusted-user header for requests from this native client, not only for browser sessions. |
@@ -313,10 +317,11 @@ that data. Run them as the desktop user, not with `sudo`. If more than one
 operating-system user ran Codex LB Status, repeat the user-data cleanup while
 signed in as each of those users.
 
-Codex LB Status creates no cache, log, database, or system service. The cleanup
-above does not change the Codex LB server, server-side sessions, or browser
-data. A downloaded `.deb` or a source checkout is not managed by APT and can be
-deleted separately if it is no longer wanted.
+Codex LB Status creates no cache, database, or system service. It does create
+the bounded local diagnostic log described above. The cleanup above does not
+change the Codex LB server, server-side sessions, or browser data. A downloaded
+`.deb` or a source checkout is not managed by APT and can be deleted separately
+if it is no longer wanted.
 
 ## Development
 

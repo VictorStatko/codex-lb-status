@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 import socket
 import ssl
+import time
+import uuid
 from collections.abc import Callable
 from contextlib import closing
 from dataclasses import dataclass
@@ -20,13 +23,14 @@ from urllib.request import (
 
 from . import __version__
 from .config import normalize_base_url
+from .diagnostics import log_event
 from .models import (
     AccountsResponse,
     DashboardSession,
     parse_accounts_response,
     parse_dashboard_session,
 )
-from .sessions import SessionCookieStore, SessionError
+from .sessions import SessionCookieStore, SessionError, origin_hash
 
 REQUEST_TIMEOUT = 10
 MAX_RESPONSE_BYTES = 1_048_576
@@ -119,6 +123,15 @@ class RefreshPayload:
 
 
 _SENSITIVE_FIELD_MARKERS = ("password", "token", "secret", "cookie", "code")
+
+
+def _cookie_jar_snapshot(cookies: CookieJar) -> tuple[tuple[str, str, str, str], ...]:
+    return tuple(
+        sorted(
+            (cookie.domain, cookie.path, cookie.name, cookie.value or "")
+            for cookie in cookies
+        )
+    )
 
 
 def _redact_sensitive_fields(value: Any) -> Any:
@@ -239,8 +252,19 @@ class CodexLBClient:
         except SessionError:
             self.session_store.clear(self.base_url)
             self._cookies = CookieJar()
+            log_event(
+                logging.WARNING,
+                "session_store_load_failed",
+                origin_hash=origin_hash(self.base_url),
+            )
         self._pending_admin_cookies: CookieJar | None = None
         self.server_version: str | None = None
+        log_event(
+            logging.INFO,
+            "client_initialized",
+            origin_hash=origin_hash(self.base_url),
+            jar_size=len(self._cookies),
+        )
 
     def _make_opener(self, cookies: CookieJar):
         if self._opener_factory is not None:
@@ -260,6 +284,7 @@ class CodexLBClient:
         path: str,
         body: dict[str, Any] | None = None,
         cookies: CookieJar | None = None,
+        operation_id: str | None = None,
     ) -> Any:
         if (method, path) not in ALLOWED_REQUESTS:
             raise AssertionError(f"unsupported dashboard request: {method} {path}")
@@ -270,6 +295,37 @@ class CodexLBClient:
         if payload is not None:
             request.add_header("Content-Type", "application/json")
         request_cookies = self._cookies if cookies is None else cookies
+        request_id = uuid.uuid4().hex[:12]
+        started = time.monotonic()
+        jar_size_before = len(request_cookies)
+        jar_snapshot_before = _cookie_jar_snapshot(request_cookies)
+
+        def log_failure(
+            failure_kind: str,
+            *,
+            status_code: int | None = None,
+            error_code: str | None = None,
+            exception_type: str | None = None,
+        ) -> None:
+            fields: dict[str, Any] = {
+                "request_id": request_id,
+                "operation_id": operation_id,
+                "origin_hash": origin_hash(self.base_url),
+                "method": method,
+                "path": path,
+                "failure_kind": failure_kind,
+                "duration_ms": round((time.monotonic() - started) * 1000),
+                "jar_size_before": jar_size_before,
+                "jar_size_after": len(request_cookies),
+            }
+            if status_code is not None:
+                fields["status_code"] = status_code
+            if error_code is not None:
+                fields["error_code"] = error_code
+            if exception_type is not None:
+                fields["exception_type"] = exception_type
+            log_event(logging.WARNING, "http_request_failed", **fields)
+
         opener = self._make_opener(request_cookies)
         try:
             with closing(opener.open(request, timeout=REQUEST_TIMEOUT)) as response:
@@ -287,78 +343,171 @@ class CodexLBClient:
                 error_body = error.read(MAX_ERROR_BODY_BYTES + 1)
             finally:
                 error.close()
+            error_code, _error_message = _dashboard_error_details(error_body)
+            log_failure("http_error", status_code=error.code, error_code=error_code)
             raise _http_failure(
                 method, path, error.code, error.headers, error_body
             ) from None
         except RedirectFailure:
+            log_failure("redirect")
             raise
         except ResponseTooLarge:
+            log_failure("response_too_large")
             raise
         except ssl.SSLError as error:
+            log_failure("tls_error", exception_type=type(error).__name__)
             raise TLSFailure("TLS connection to the dashboard failed") from error
         except TimeoutError:
+            log_failure("timeout")
             raise RequestTimeout(
                 "dashboard request timed out after 10 seconds"
             ) from None
         except URLError as error:
             reason = error.reason
             if isinstance(reason, ssl.SSLError):
+                log_failure("tls_error", exception_type=type(reason).__name__)
                 raise TLSFailure("TLS connection to the dashboard failed") from error
             if isinstance(reason, (socket.timeout, TimeoutError)):
+                log_failure("timeout")
                 raise RequestTimeout(
                     "dashboard request timed out after 10 seconds"
                 ) from None
+            log_failure("network_error", exception_type=type(reason).__name__)
             raise NetworkError("cannot reach the Codex LB dashboard") from error
         except OSError as error:
+            log_failure("os_error", exception_type=type(error).__name__)
             raise NetworkError("cannot reach the Codex LB dashboard") from error
         content_type = headers.get_content_type()
         if not content_type or not (
             content_type == "application/json" or content_type.endswith("+json")
         ):
+            log_failure("non_json_response", status_code=status)
             raise ContentTypeFailure("dashboard returned a non-JSON response")
         if not 200 <= status < 300:
+            log_failure("http_error", status_code=status)
             raise _http_failure(method, path, status, headers, response_body)
+        log_event(
+            logging.INFO,
+            "http_request_succeeded",
+            request_id=request_id,
+            operation_id=operation_id,
+            origin_hash=origin_hash(self.base_url),
+            method=method,
+            path=path,
+            status_code=status,
+            duration_ms=round((time.monotonic() - started) * 1000),
+            jar_size_before=jar_size_before,
+            jar_size_after=len(request_cookies),
+            jar_changed=jar_snapshot_before != _cookie_jar_snapshot(request_cookies),
+            server_version=self.server_version,
+        )
         try:
             return json.loads(response_body.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError) as error:
+            log_failure("invalid_json", status_code=status)
             raise JsonFailure("dashboard returned invalid JSON") from error
 
-    def get_session(self) -> DashboardSession:
+    def get_session(self, *, operation_id: str | None = None) -> DashboardSession:
         try:
-            return parse_dashboard_session(
-                self._request("GET", "/api/dashboard-auth/session")
+            session = parse_dashboard_session(
+                self._request(
+                    "GET", "/api/dashboard-auth/session", operation_id=operation_id
+                )
             )
         except ValueError as error:
+            log_event(
+                logging.WARNING,
+                "dashboard_session_contract_invalid",
+                operation_id=operation_id,
+                origin_hash=origin_hash(self.base_url),
+            )
             raise ContractFailure(
                 "dashboard session response has an invalid shape"
             ) from error
+        log_event(
+            logging.INFO,
+            "dashboard_session_observed",
+            operation_id=operation_id,
+            origin_hash=origin_hash(self.base_url),
+            authenticated=session.authenticated,
+            role=session.role,
+            auth_mode=session.auth_mode,
+            password_required=session.password_required,
+            guest_access_enabled=session.guest_access_enabled,
+        )
+        return session
 
-    def get_accounts(self) -> AccountsResponse:
+    def get_accounts(self, *, operation_id: str | None = None) -> AccountsResponse:
         try:
-            return parse_accounts_response(self._request("GET", "/api/accounts"))
+            accounts = parse_accounts_response(
+                self._request("GET", "/api/accounts", operation_id=operation_id)
+            )
         except ValueError as error:
+            log_event(
+                logging.WARNING,
+                "accounts_contract_invalid",
+                operation_id=operation_id,
+                origin_hash=origin_hash(self.base_url),
+            )
             raise ContractFailure(
                 "dashboard accounts response has an invalid shape"
             ) from error
+        log_event(
+            logging.INFO,
+            "accounts_observed",
+            operation_id=operation_id,
+            origin_hash=origin_hash(self.base_url),
+            account_count=len(accounts.accounts),
+        )
+        return accounts
 
     def refresh(self) -> RefreshPayload:
         """Fetch session then accounts, retrying authorization state after 401."""
 
-        session = self.get_session()
+        operation_id = uuid.uuid4().hex[:12]
+        log_event(
+            logging.INFO,
+            "refresh_started",
+            operation_id=operation_id,
+            origin_hash=origin_hash(self.base_url),
+            jar_size=len(self._cookies),
+        )
+        session = self.get_session(operation_id=operation_id)
         try:
-            accounts = self.get_accounts()
+            accounts = self.get_accounts(operation_id=operation_id)
         except AuthenticationError as error:
-            self.clear_session()
+            log_event(
+                logging.WARNING,
+                "refresh_authentication_failure",
+                operation_id=operation_id,
+                origin_hash=origin_hash(self.base_url),
+                status_code=error.status_code,
+                error_code=error.error_code,
+            )
+            self.clear_session(reason="refresh_authentication_failure")
             try:
-                fresh_session = self.get_session()
+                fresh_session = self.get_session(operation_id=operation_id)
             except ClientError:
                 fresh_session = session
             raise AuthenticationRequired(fresh_session) from error
+        log_event(
+            logging.INFO,
+            "refresh_succeeded",
+            operation_id=operation_id,
+            origin_hash=origin_hash(self.base_url),
+            account_count=len(accounts.accounts),
+        )
         return RefreshPayload(session=session, accounts=accounts)
 
     def _persist_authenticated_cookies(self, cookies: CookieJar) -> None:
         self.session_store.save(self.base_url, cookies)
         self._cookies = cookies
+        log_event(
+            logging.INFO,
+            "session_persisted",
+            origin_hash=origin_hash(self.base_url),
+            jar_size=len(cookies),
+        )
 
     def start_admin_login(self, password: str) -> DashboardSession:
         if not isinstance(password, str) or not password:
@@ -449,7 +598,14 @@ class CodexLBClient:
         self._persist_authenticated_cookies(temporary)
         return session
 
-    def clear_session(self) -> None:
+    def clear_session(self, *, reason: str = "manual") -> None:
+        log_event(
+            logging.WARNING if reason != "manual" else logging.INFO,
+            "session_local_state_cleared",
+            origin_hash=origin_hash(self.base_url),
+            reason=reason,
+            jar_size=len(self._cookies),
+        )
         self._pending_admin_cookies = None
         self._cookies = CookieJar()
         self.session_store.clear(self.base_url)
